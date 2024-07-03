@@ -9,7 +9,7 @@ namespace CardProject
 	{
 		public List<levelSize> levels;
 		public List<Sprite> icons;
-		public List<dificultyMode> dificulty;
+		public List<dificultyMode> dificultyList;
 	
 	
 		[Serializable]
@@ -23,6 +23,7 @@ namespace CardProject
 		public struct dificultyMode
 		{
 			public int startLevelIndex;
+			public int lastLevelIndex;
 		}
 	}
 }
