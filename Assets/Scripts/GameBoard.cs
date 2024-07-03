@@ -43,7 +43,6 @@ namespace CardProject
             if (cards == null)
             {
                 throw new Exception("cards list is empty");
-                return null;
             }
 
             return cards[cardIterator++];
@@ -53,13 +52,5 @@ namespace CardProject
         {
             return cardIterator;
         }
-
-        public void UpdateBoard(int rows, int columns)
-        {
-            this.rows = rows;
-            this.columns = columns;
-            cards.Clear();
-        }
-
     }
 }

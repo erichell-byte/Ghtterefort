@@ -12,26 +12,28 @@ namespace CardProject
 		private Image icon;
 		[SerializeField]
 		private GameObject back;
-
-		private float y = 1;
-		private bool backIsActive;
-		public int timer;
-
-		public int Index;
-
-		public event Action<CardView> OnCardClicked;
-		public bool IsFlipped { get; set; }
 		
-
+		private bool backIsActive;
+		private bool isFlipped;
+		public int timer;
+		
+		public int Index; 
+		public event Action<CardView> OnCardClicked;
+		
+		
 		public void Init(int index)
 		{
 			Index = index;
+			transform.localEulerAngles = new Vector3(0, 0 ,0);
+			transform.localScale = new Vector3(1, 1, 1);
+			back.SetActive(true);
 			backIsActive = true;
+			isFlipped = false;
 		}
 		
 		#region Flip
 		
-		public void StartFlip()
+		private void StartFlip()
 		{
 			StartCoroutine(CalculateFlip());
 		}
@@ -41,48 +43,26 @@ namespace CardProject
 			StartCoroutine(WaitAndFlip());
 		}
 
-		public void StartWaitAndDestroy()
+		private IEnumerator WaitAndFlip()
 		{
-			StartCoroutine(WaitAndDestroy());
-		}
-
-		public IEnumerator WaitAndFlip()
-		{
-			yield return new WaitForSeconds(1f);
+			yield return new WaitForSeconds(0.5f);
 
 			StartCoroutine(CalculateFlip());
 		}
 		
-		public IEnumerator WaitAndDestroy()
+		private void Flip()
 		{
-			yield return new WaitForSeconds(1f);
-
-			Destroy(gameObject);
-		}
-		
-
-		public void Flip()
-		{
-			if (backIsActive)
-			{
-				back.SetActive(false);
-				backIsActive = false;
-			}
-			else
-			{
-				back.SetActive(true);
-				backIsActive = true;
-				IsFlipped = true;
-			}
+			back.SetActive(!backIsActive);
+			backIsActive = !backIsActive;
 		}
 
 		private IEnumerator CalculateFlip()
 		{
-			
+			isFlipped = !isFlipped;
 			for (int i = 0; i < 180; i++)
 			{
 				yield return new WaitForSeconds(0.001f);
-				transform.Rotate(new Vector3(0,y,0));
+				transform.Rotate(new Vector3(0,1,0));
 				timer++;
 
 				if (timer == 90 || timer == -90)
@@ -95,6 +75,31 @@ namespace CardProject
 		}
 		
 		#endregion
+
+		public void StartRotateToZeroWithCallback(Action<CardView> callback)
+		{
+			StartCoroutine(RotateToZero(callback));
+		}
+		
+		private IEnumerator RotateToZero(Action<CardView> callback)
+		{
+			yield return new WaitForSeconds(0.5f);
+			
+			float duration = 0.5f;
+			float elapsed = 0f;
+
+			while (elapsed < duration)
+			{
+				elapsed += Time.deltaTime;
+				float progress = elapsed / duration;
+
+				transform.Rotate(new Vector3(0,0,3));
+				transform.localScale = new Vector3(1 - progress, 1 - progress, 1 - progress);
+				
+				yield return null;
+			}
+			callback?.Invoke(this);
+		}
 		
 		public void SetIcon(Sprite sprite)
 		{
@@ -103,6 +108,8 @@ namespace CardProject
 
 		public void OnPointerClick(PointerEventData eventData)
 		{
+			if (isFlipped) return;
+			
 			StartFlip();
 			OnCardClicked?.Invoke(this);
 		}

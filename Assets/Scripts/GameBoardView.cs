@@ -1,19 +1,28 @@
+using System;
+using TMPro;
 using UnityEngine;
 
 namespace CardProject
 {
 	public class GameBoardView : MonoBehaviour
 	{
+		[SerializeField] private TextMeshProUGUI scoreText;
+		[SerializeField] private TextMeshProUGUI comboTimeText;
+		[SerializeField] private GameObject comboGO;
+		
 		private RectTransform gameBoardRect;
 		private GameBoard board;
 
-		public float Padding = 100f;
-		
-		public void Init(GameBoard board)
+		public float Padding;
+
+		private void Awake()
+		{
+			gameBoardRect = GetComponent<RectTransform>();
+		}
+
+		public void UpdateBoard(GameBoard board)
 		{
 			this.board = board;
-			
-			gameBoardRect = GetComponent<RectTransform>();
 		}
 
 		public void CalculateCardSize(out float cardWidth, out float cardHeight)
@@ -49,5 +58,6 @@ namespace CardProject
 
 			return new Vector3(x, y, 0);
 		}
+		
 	}
 }
