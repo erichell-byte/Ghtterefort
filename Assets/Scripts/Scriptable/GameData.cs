@@ -7,23 +7,37 @@ namespace CardProject
 	[CreateAssetMenu(fileName = "Levels", menuName = "CardsGame/New levels file")]
 	public class GameData : ScriptableObject
 	{
-		public List<levelSize> levels;
+		public List<LevelInfo> levels;
 		public List<Sprite> icons;
-		public List<dificultyMode> dificultyList;
-	
-	
+		public List<DifficultyDictItem> difficultyList;
+		
 		[Serializable]
-		public struct levelSize
+		public struct LevelInfo
 		{
 			public int rows;
 			public int columns;
 		}
 
 		[Serializable]
-		public struct dificultyMode
+		public struct DifficultyMode
 		{
 			public int startLevelIndex;
 			public int lastLevelIndex;
+		}
+		
+		[Serializable]
+		public enum Difficulty
+		{
+			Easy,
+			Medium,
+			Hard
+		}
+		
+		[Serializable]
+		public struct DifficultyDictItem // Новая структура для представления пары ключ-значение
+		{
+			public Difficulty difficulty;
+			public DifficultyMode mode;
 		}
 	}
 }

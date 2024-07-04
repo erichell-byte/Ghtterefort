@@ -53,11 +53,12 @@ namespace CardProject
 			pooledCards.Enqueue(card);
 		}
 
-		public void ReturnAllToPool()
+		public void ReturnAllToPoolAndUnsubscribe(Action<CardView> func)
 		{
 			CardView[] activeCards = FindObjectsOfType<CardView>();
 			foreach (CardView card in activeCards)
 			{
+				card.OnCardClicked -= func;
 				ReturnToPool(card);
 			}
 		}

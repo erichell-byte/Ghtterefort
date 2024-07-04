@@ -4,10 +4,11 @@ namespace CardProject
 {
 	public class SaveData
 	{
-		private int levelIndex;
-		private int difficultyIndex;
-		private int easyScore;
-		private int mediumScore;
-		private int hardScore;
+		public int lastlevelScore;
+		public int lastLevelIndex;
+		public GameData.Difficulty lastDifficulty;
+		public int easyScore;
+		public int mediumScore;
+		public int hardScore;
 	}
 }

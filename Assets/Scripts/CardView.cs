@@ -113,5 +113,6 @@ namespace CardProject
 			StartFlip();
 			OnCardClicked?.Invoke(this);
 		}
+		
 	}
 }

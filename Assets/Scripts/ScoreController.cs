@@ -5,12 +5,29 @@ namespace CardProject
 {
 	public class ScoreController : MonoBehaviour
 	{
-		private int score;
+		[SerializeField]
+		private int valueToAdd;
+		[SerializeField]
+		private int comboMultiplier;
+		[SerializeField]
 		private float comboDuration;
+		
 		private float elapsed;
-
+		private int score;
+		public int Score
+		{
+			get => score;
+			set
+			{
+				score = Math.Max(0, value);
+				OnScoreChanged?.Invoke(score);
+			}
+		}
+		
 		public bool isComboTime;
 		public event Action<float> ComboTimeRemaining;
+		public event Action<int> OnScoreChanged;
+		public event Action<bool> OnComboStateChanged; 
 
 		private void Update()
 		{
@@ -22,21 +39,23 @@ namespace CardProject
 				
 				if (elapsed >= comboDuration)
 				{
-					isComboTime = false;
 					elapsed = 0f;
+					OnComboStateChanged?.Invoke(isComboTime = false);
 				}
-					
 			}
 		}
 
-		public void AddScore(int valueToAdd)
+		public void AddScoreByMatching()
 		{
-			score += valueToAdd;
-		}
-
-		public void ReplaceScore(int newValue)
-		{
-			score = newValue;
+			Score = isComboTime 
+				? Score + (valueToAdd * comboMultiplier)
+				: Score + valueToAdd;
+			
+			if (isComboTime)
+				elapsed = 0;
+			else
+				OnComboStateChanged?.Invoke(isComboTime = true);
+			
 		}
 	}
 }

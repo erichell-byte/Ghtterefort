@@ -1,11 +1,14 @@
+
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace CardProject
 {
 	public class Game : MonoBehaviour
 	{
-		[SerializeField] private SaveSystemProvider saveProvider;
+		[SerializeField] private SaveProvider saveProvider;
 		[SerializeField] private MenuView menu;
 		[SerializeField] private CardPool cardPool;
 		[SerializeField] private GameBoardView boardView;
@@ -14,28 +17,96 @@ namespace CardProject
 		private int currentLevelIndex;
 		private int currentLevelRows;
 		private int currentLevelColumns;
-		private int difficultyIndex; 
+		private GameData.Difficulty currentDifficulty;
+		private int  scoreFromLastLevel; 
 		private bool isFirstTouch;
 		private CardView firstCardSelected;
 		private GameData gameData;
 		private GameBoard board;
-		private List<CardView> activeCards = new ();
-		
-		private void Awake()
+
+		private void Start()
 		{
-			gameData = saveProvider.GetGameData();
-			menu.OnStartGameButtonClicked += StartGame;
+			menu.OnStartGameButtonClicked += StartNewGame;
+			menu.OnContinueGameButtonClicked += ContinueGame;
+			scoreController.OnScoreChanged += boardView.UpdateScore;
+			scoreController.ComboTimeRemaining += boardView.UpdateComboTimeText;
+			scoreController.OnComboStateChanged += boardView.UpdateComboState;
+			boardView.OnMenuButtonClicked += GoToMenu;
+
+			InitSavedData();
 		}
 
-		private void StartGame()
+		private void InitSavedData()
+		{
+			gameData = saveProvider.GetGameData();
+			
+			menu.UpdateScoresAtMode(
+				saveProvider.GetBestEasyScore(),
+				saveProvider.GetBestMediumScore(),
+				saveProvider.GetBestHardScore());
+			
+			if (saveProvider.GetLastLevelIndex() == -1)
+				menu.ChangeContinueButtonState(false);
+		}
+		
+		private void SaveGameProgress()
+		{
+			SaveData saveData = new SaveData
+			{
+				lastLevelIndex = currentLevelIndex,
+				lastDifficulty = currentDifficulty,
+				lastlevelScore = scoreFromLastLevel
+			};
+
+			int currentScore = scoreController.Score;
+			
+			var scoreMethods = new Dictionary<GameData.Difficulty, (Func<int> GetScore, Action<int> SetScore)>
+			{
+				{ GameData.Difficulty.Easy, (() => saveProvider.GetBestEasyScore(), score => saveData.easyScore = score) },
+				{ GameData.Difficulty.Medium, (() => saveProvider.GetBestMediumScore(), score => saveData.mediumScore = score) },
+				{ GameData.Difficulty.Hard, (() => saveProvider.GetBestHardScore(), score => saveData.hardScore = score) }
+			};
+
+			foreach (var difficulty in scoreMethods.Keys)
+			{
+				var (getScore, setScore) = scoreMethods[difficulty];
+				int bestScore = getScore();
+
+				if (difficulty == currentDifficulty)
+					setScore(Math.Max(currentScore, bestScore));
+				else
+					setScore(bestScore);
+			}
+
+			saveProvider.SaveGame(saveData);
+		}
+
+		private void ContinueGame()
+		{
+			scoreController.Score = saveProvider.GetLastLevelScore();
+			currentLevelIndex = saveProvider.GetLastLevelIndex();
+			
+			LaunchGame();
+		}
+
+		private void StartNewGame()
 		{
 			FindOutDifficulty();
+			scoreController.Score = 0;
 			
-			currentLevelIndex = gameData.dificultyList[difficultyIndex].startLevelIndex;
-			
+			currentLevelIndex = gameData.difficultyList
+				.FirstOrDefault(item => item.difficulty == currentDifficulty)
+				.mode.startLevelIndex;
+
+			LaunchGame();
+		}
+
+		private void LaunchGame()
+		{
 			currentLevelColumns = gameData.levels[currentLevelIndex].columns;
 			currentLevelRows = gameData.levels[currentLevelIndex].rows;
-
+			
+			board = null;
 			board = new GameBoard(currentLevelRows, currentLevelColumns);
 			boardView.UpdateBoard(board);
 			
@@ -45,31 +116,33 @@ namespace CardProject
 			CreateCards();
 		}
 
-		public void GoToNextLevel()
+		private void GoToNextLevel()
 		{
-			if (currentLevelIndex >= gameData.dificultyList[difficultyIndex].lastLevelIndex)
-			{
+			scoreFromLastLevel = scoreController.Score;
+				
+			if (currentLevelIndex >= gameData.difficultyList
+				    .FirstOrDefault(item => item.difficulty == currentDifficulty)
+				    .mode.lastLevelIndex)
 				GoToMenu();
-			}
 			else
-			{
 				currentLevelIndex++;
-			}
-
-			currentLevelColumns = gameData.levels[currentLevelIndex].columns;
-			currentLevelRows = gameData.levels[currentLevelIndex].rows;
-
-			board = null;
-			board = new GameBoard(currentLevelRows, currentLevelColumns);
 			
-			boardView.UpdateBoard(board);
-
-			CreateCards();
-
+			LaunchGame();
+			
+			SaveGameProgress();
 		}
-
+		
 		private void GoToMenu()
 		{
+			SaveGameProgress();
+			
+			menu.UpdateScoresAtMode(
+				saveProvider.GetBestEasyScore(),
+				saveProvider.GetBestMediumScore(),
+				saveProvider.GetBestHardScore());
+			
+			ResetGame();
+			
 			boardView.gameObject.SetActive(false);
 			menu.gameObject.SetActive(true);
 		}
@@ -79,11 +152,11 @@ namespace CardProject
 			float rawDifficulty = menu.GetCurrentRawDifficulty();
 
 			if (rawDifficulty < 0.25f)
-				difficultyIndex = 0;
+				currentDifficulty = GameData.Difficulty.Easy;
 			else if (rawDifficulty < 0.75f)
-				difficultyIndex = 1;
+				currentDifficulty = GameData.Difficulty.Medium;
 			else
-				difficultyIndex = 2;
+				currentDifficulty = GameData.Difficulty.Hard;
 		}
 		
 		public void CreateCards()
@@ -113,8 +186,6 @@ namespace CardProject
 
 			cardView.GetComponent<RectTransform>().sizeDelta = new Vector2(cardWidth, cardHeight);
 			cardView.SetIcon(gameData.icons[card.Id]);
-			
-			activeCards.Add(cardView);
 		}
 
 		private void OnCardClicked(CardView cardView)
@@ -132,7 +203,7 @@ namespace CardProject
 				{
 					firstCardSelected.StartRotateToZeroWithCallback(ReturnCard);
 					secondCardSelected.StartRotateToZeroWithCallback(ReturnCard);
-					
+					scoreController.AddScoreByMatching();
 				}
 				else
 				{
@@ -144,23 +215,33 @@ namespace CardProject
 			}
 		}
 
+		private void ResetGame()
+		{
+			cardPool.ReturnAllToPoolAndUnsubscribe(OnCardClicked);
+		}
+
 		private void ReturnCard(CardView cardView)
 		{
 			cardView.OnCardClicked -= OnCardClicked;
 			cardPool.ReturnToPool(cardView);
-			activeCards.Remove(cardView);
+			board.RemoveCard(cardView.Index);
 			CheckLevelEnd();
 		}
 
 		private void CheckLevelEnd()
 		{
-			if (activeCards.Count == 0)
+			if (board.GetCardsCount() == 0)
 				GoToNextLevel();
 		}
 
 		private void OnDestroy()
 		{
-			menu.OnStartGameButtonClicked -= StartGame;
+			menu.OnStartGameButtonClicked -= StartNewGame;
+			menu.OnContinueGameButtonClicked -= ContinueGame;
+			scoreController.OnScoreChanged -= boardView.UpdateScore;
+			scoreController.ComboTimeRemaining -= boardView.UpdateComboTimeText;
+			scoreController.OnComboStateChanged -= boardView.UpdateComboState;
+			boardView.OnMenuButtonClicked -= GoToMenu;
 		}
 	}
 }

@@ -52,5 +52,15 @@ namespace CardProject
         {
             return cardIterator;
         }
+
+        public void RemoveCard(int cardIndex)
+        {
+            cards.Remove(cards.FirstOrDefault(card => card.Id == cardIndex));
+        }
+
+        public int GetCardsCount()
+        {
+            return cards.Count;
+        }
     }
 }
