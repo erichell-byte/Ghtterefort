@@ -13,6 +13,7 @@ namespace CardProject
 		[SerializeField] private CardPool cardPool;
 		[SerializeField] private GameBoardView boardView;
 		[SerializeField] private ScoreController scoreController;
+		[SerializeField] private SoundController soundController;
 		
 		private int currentLevelIndex;
 		private int currentLevelRows;
@@ -130,6 +131,7 @@ namespace CardProject
 			LaunchGame();
 			
 			SaveGameProgress();
+			soundController.PlaySound(SoundController.SoundsType.GameOver, 0.7f);
 		}
 		
 		private void GoToMenu()
@@ -190,6 +192,7 @@ namespace CardProject
 
 		private void OnCardClicked(CardView cardView)
 		{
+			soundController.PlaySound(SoundController.SoundsType.Flipping, 0.5f);
 			if (firstCardSelected == null)
 			{
 				firstCardSelected = cardView;
@@ -204,11 +207,13 @@ namespace CardProject
 					firstCardSelected.StartRotateToZeroWithCallback(ReturnCard);
 					secondCardSelected.StartRotateToZeroWithCallback(ReturnCard);
 					scoreController.AddScoreByMatching();
+					soundController.PlaySound(SoundController.SoundsType.Matching, 0.7f);
 				}
 				else
 				{
 					firstCardSelected.StartWaitAndFlip();
 					secondCardSelected.StartWaitAndFlip();
+					soundController.PlaySound(SoundController.SoundsType.Mismatching, 0.5f);
 				}
 				
 				firstCardSelected = null;

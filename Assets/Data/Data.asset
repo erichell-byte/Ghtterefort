@@ -80,10 +80,16 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 14eb1d70208744de7b243f349c64af51, type: 3}
   - {fileID: 21300000, guid: 53e56446459204225a20fa6bd77d9db2, type: 3}
   - {fileID: 21300000, guid: 06ab0e2518ec94d9bb213ff9a13e32af, type: 3}
-  dificultyList:
-  - startLevelIndex: 0
-    lastLevelIndex: 9
-  - startLevelIndex: 2
-    lastLevelIndex: 11
-  - startLevelIndex: 5
-    lastLevelIndex: 14
+  difficultyList:
+  - difficulty: 0
+    mode:
+      startLevelIndex: 0
+      lastLevelIndex: 9
+  - difficulty: 1
+    mode:
+      startLevelIndex: 2
+      lastLevelIndex: 11
+  - difficulty: 2
+    mode:
+      startLevelIndex: 5
+      lastLevelIndex: 14
