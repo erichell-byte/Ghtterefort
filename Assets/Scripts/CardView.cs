@@ -60,19 +60,27 @@ namespace CardProject
 		private IEnumerator CalculateFlip()
 		{
 			isFlipped = !isFlipped;
-			for (int i = 0; i < 180; i++)
+			bool flipped = false;
+			float duration = 0.5f;
+			float elapsedTime = 0f;
+			Quaternion startRotation = transform.rotation;
+			Quaternion endRotation = startRotation * Quaternion.Euler(0, 180, 0);
+    
+			while (elapsedTime < duration)
 			{
-				yield return new WaitForSeconds(0.001f);
-				transform.Rotate(new Vector3(0, 1, 0));
-				timer++;
-
-				if (timer == 90 || timer == -90)
+				elapsedTime += Time.deltaTime;
+				float t = elapsedTime / duration;
+				transform.rotation = Quaternion.Slerp(startRotation, endRotation, t);
+				
+				if (t >= 0.5f && !flipped)
 				{
+					
 					Flip();
+					flipped = true;
 				}
+        
+				yield return null;
 			}
-
-			timer = 0;
 		}
 
 		#endregion

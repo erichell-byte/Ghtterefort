@@ -1,7 +1,6 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace CardProject
@@ -17,12 +16,17 @@ namespace CardProject
 		private GameBoard board;
 
 		public float Padding;
-		public event UnityAction OnMenuButtonClicked;
+		public event Action OnMenuButtonClicked;
 
 		private void Awake()
 		{
 			gameBoardRect = GetComponent<RectTransform>();
-			goToMenuButton.onClick.AddListener(OnMenuButtonClicked);
+			goToMenuButton.onClick.AddListener(OnMenuButtonClick);
+		}
+
+		private void OnMenuButtonClick()
+		{
+			OnMenuButtonClicked?.Invoke();
 		}
 
 		public void UpdateBoard(GameBoard board)
@@ -82,7 +86,7 @@ namespace CardProject
 
 		private void OnDestroy()
 		{
-			goToMenuButton.onClick.RemoveListener(OnMenuButtonClicked);
+			goToMenuButton.onClick.RemoveListener(OnMenuButtonClick);
 		}
 	}
 }
