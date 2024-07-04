@@ -10,7 +10,7 @@ namespace CardProject
 		public List<LevelInfo> levels;
 		public List<Sprite> icons;
 		public List<DifficultyDictItem> difficultyList;
-		
+
 		[Serializable]
 		public struct LevelInfo
 		{
@@ -24,7 +24,7 @@ namespace CardProject
 			public int startLevelIndex;
 			public int lastLevelIndex;
 		}
-		
+
 		[Serializable]
 		public enum Difficulty
 		{
@@ -32,7 +32,7 @@ namespace CardProject
 			Medium,
 			Hard
 		}
-		
+
 		[Serializable]
 		public struct DifficultyDictItem // Новая структура для представления пары ключ-значение
 		{

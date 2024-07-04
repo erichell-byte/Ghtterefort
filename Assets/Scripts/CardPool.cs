@@ -9,8 +9,8 @@ namespace CardProject
 		[SerializeField] private CardView cardPrefab;
 		[SerializeField] private Transform parent;
 		[SerializeField] private int initialPoolSize = 20;
-		
-		private Queue<CardView> pooledCards = new ();
+
+		private Queue<CardView> pooledCards = new();
 
 		private void Awake()
 		{

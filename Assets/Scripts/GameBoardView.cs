@@ -12,7 +12,7 @@ namespace CardProject
 		[SerializeField] private TextMeshProUGUI comboTimeText;
 		[SerializeField] private GameObject comboGO;
 		[SerializeField] private Button goToMenuButton;
-		
+
 		private RectTransform gameBoardRect;
 		private GameBoard board;
 
@@ -53,7 +53,7 @@ namespace CardProject
 
 			float maxCardWidth = (boardWidth - (board.Columns + 1) * Padding) / board.Columns;
 			float maxCardHeight = (boardHeight - (board.Rows + 1) * Padding) / board.Rows;
-			
+
 			if (maxCardWidth / 2 * 3 <= maxCardHeight)
 			{
 				cardWidth = maxCardWidth;

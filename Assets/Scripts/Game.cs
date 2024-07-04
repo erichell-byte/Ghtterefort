@@ -1,6 +1,3 @@
-
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -14,12 +11,12 @@ namespace CardProject
 		[SerializeField] private GameBoardView boardView;
 		[SerializeField] private ScoreController scoreController;
 		[SerializeField] private SoundController soundController;
-		
+
 		private int currentLevelIndex;
 		private int currentLevelRows;
 		private int currentLevelColumns;
 		private GameData.Difficulty currentDifficulty;
-		private int  scoreFromLastLevel; 
+		private int scoreFromLastLevel;
 		private bool isFirstTouch;
 		private CardView firstCardSelected;
 		private GameData gameData;
@@ -27,66 +24,38 @@ namespace CardProject
 
 		private void Start()
 		{
+			InitializeEventListeners();
+			InitSavedData();
+		}
+
+		private void InitializeEventListeners()
+		{
 			menu.OnStartGameButtonClicked += StartNewGame;
 			menu.OnContinueGameButtonClicked += ContinueGame;
 			scoreController.OnScoreChanged += boardView.UpdateScore;
 			scoreController.ComboTimeRemaining += boardView.UpdateComboTimeText;
 			scoreController.OnComboStateChanged += boardView.UpdateComboState;
 			boardView.OnMenuButtonClicked += GoToMenu;
-
-			InitSavedData();
 		}
 
 		private void InitSavedData()
 		{
 			gameData = saveProvider.GetGameData();
-			
+
 			menu.UpdateScoresAtMode(
 				saveProvider.GetBestEasyScore(),
 				saveProvider.GetBestMediumScore(),
 				saveProvider.GetBestHardScore());
-			
-			if (saveProvider.GetLastLevelIndex() == -1)
-				menu.ChangeContinueButtonState(false);
-		}
-		
-		private void SaveGameProgress()
-		{
-			SaveData saveData = new SaveData
-			{
-				lastLevelIndex = currentLevelIndex,
-				lastDifficulty = currentDifficulty,
-				lastlevelScore = scoreFromLastLevel
-			};
 
-			int currentScore = scoreController.Score;
-			
-			var scoreMethods = new Dictionary<GameData.Difficulty, (Func<int> GetScore, Action<int> SetScore)>
-			{
-				{ GameData.Difficulty.Easy, (() => saveProvider.GetBestEasyScore(), score => saveData.easyScore = score) },
-				{ GameData.Difficulty.Medium, (() => saveProvider.GetBestMediumScore(), score => saveData.mediumScore = score) },
-				{ GameData.Difficulty.Hard, (() => saveProvider.GetBestHardScore(), score => saveData.hardScore = score) }
-			};
-
-			foreach (var difficulty in scoreMethods.Keys)
-			{
-				var (getScore, setScore) = scoreMethods[difficulty];
-				int bestScore = getScore();
-
-				if (difficulty == currentDifficulty)
-					setScore(Math.Max(currentScore, bestScore));
-				else
-					setScore(bestScore);
-			}
-
-			saveProvider.SaveGame(saveData);
+			menu.ChangeContinueButtonState(saveProvider.GetLastLevelIndex() != -1);
 		}
 
 		private void ContinueGame()
 		{
 			scoreController.Score = saveProvider.GetLastLevelScore();
 			currentLevelIndex = saveProvider.GetLastLevelIndex();
-			
+			currentDifficulty = saveProvider.GetLastDifficulty();
+
 			LaunchGame();
 		}
 
@@ -94,7 +63,7 @@ namespace CardProject
 		{
 			FindOutDifficulty();
 			scoreController.Score = 0;
-			
+
 			currentLevelIndex = gameData.difficultyList
 				.FirstOrDefault(item => item.difficulty == currentDifficulty)
 				.mode.startLevelIndex;
@@ -102,49 +71,51 @@ namespace CardProject
 			LaunchGame();
 		}
 
-		private void LaunchGame()
-		{
-			currentLevelColumns = gameData.levels[currentLevelIndex].columns;
-			currentLevelRows = gameData.levels[currentLevelIndex].rows;
-			
-			board = null;
-			board = new GameBoard(currentLevelRows, currentLevelColumns);
-			boardView.UpdateBoard(board);
-			
-			menu.gameObject.SetActive(false);
-			boardView.gameObject.SetActive(true);
-			
-			CreateCards();
-		}
-
 		private void GoToNextLevel()
 		{
 			scoreFromLastLevel = scoreController.Score;
-				
+
 			if (currentLevelIndex >= gameData.difficultyList
 				    .FirstOrDefault(item => item.difficulty == currentDifficulty)
 				    .mode.lastLevelIndex)
 				GoToMenu();
 			else
 				currentLevelIndex++;
-			
+
 			LaunchGame();
-			
-			SaveGameProgress();
+
+			saveProvider.SaveGameProgress(currentLevelIndex, currentDifficulty, scoreFromLastLevel,
+				scoreController.Score);
 			soundController.PlaySound(SoundController.SoundsType.GameOver, 0.7f);
 		}
-		
+
+		private void LaunchGame()
+		{
+			currentLevelColumns = gameData.levels[currentLevelIndex].columns;
+			currentLevelRows = gameData.levels[currentLevelIndex].rows;
+
+			board = null;
+			board = new GameBoard(currentLevelRows, currentLevelColumns);
+			boardView.UpdateBoard(board);
+
+			menu.gameObject.SetActive(false);
+			boardView.gameObject.SetActive(true);
+
+			CreateCards();
+		}
+
 		private void GoToMenu()
 		{
-			SaveGameProgress();
-			
+			saveProvider.SaveGameProgress(currentLevelIndex, currentDifficulty, scoreFromLastLevel,
+				scoreController.Score);
+
 			menu.UpdateScoresAtMode(
 				saveProvider.GetBestEasyScore(),
 				saveProvider.GetBestMediumScore(),
 				saveProvider.GetBestHardScore());
-			
+
 			ResetGame();
-			
+
 			boardView.gameObject.SetActive(false);
 			menu.gameObject.SetActive(true);
 		}
@@ -160,15 +131,12 @@ namespace CardProject
 			else
 				currentDifficulty = GameData.Difficulty.Hard;
 		}
-		
+
 		public void CreateCards()
 		{
-			for (int row = 0; row < board.Rows; row++)
+			for (int i = 0; i < board.Rows * board.Columns; i++)
 			{
-				for (int col = 0; col < board.Columns; col++)
-				{
-					CreateCard();
-				}
+				CreateCard();
 			}
 		}
 
@@ -182,10 +150,8 @@ namespace CardProject
 			cardView.Init(card.Id);
 			cardView.OnCardClicked += OnCardClicked;
 			cardView.transform.localPosition = position;
-					
-			float cardWidth, cardHeight;
-			boardView.CalculateCardSize(out cardWidth, out cardHeight);
 
+			boardView.CalculateCardSize(out float cardWidth, out float cardHeight);
 			cardView.GetComponent<RectTransform>().sizeDelta = new Vector2(cardWidth, cardHeight);
 			cardView.SetIcon(gameData.icons[card.Id]);
 		}
@@ -200,24 +166,30 @@ namespace CardProject
 			else
 			{
 				var secondCardSelected = cardView;
-				
-				if (firstCardSelected.Index == secondCardSelected.Index 
+
+				if (firstCardSelected.Index == secondCardSelected.Index
 				    && firstCardSelected != secondCardSelected)
-				{
-					firstCardSelected.StartRotateToZeroWithCallback(ReturnCard);
-					secondCardSelected.StartRotateToZeroWithCallback(ReturnCard);
-					scoreController.AddScoreByMatching();
-					soundController.PlaySound(SoundController.SoundsType.Matching, 0.7f);
-				}
+					HandleMatchingCards(firstCardSelected, secondCardSelected);
 				else
-				{
-					firstCardSelected.StartWaitAndFlip();
-					secondCardSelected.StartWaitAndFlip();
-					soundController.PlaySound(SoundController.SoundsType.Mismatching, 0.5f);
-				}
-				
+					HandleMismatchingCards(firstCardSelected, secondCardSelected);
+
 				firstCardSelected = null;
 			}
+		}
+
+		private void HandleMatchingCards(CardView first, CardView second)
+		{
+			first.StartRotateToZeroWithCallback(ReturnCard);
+			second.StartRotateToZeroWithCallback(ReturnCard);
+			scoreController.AddScoreByMatching();
+			soundController.PlaySound(SoundController.SoundsType.Matching, 0.7f);
+		}
+
+		private void HandleMismatchingCards(CardView first, CardView second)
+		{
+			first.StartWaitAndFlip();
+			second.StartWaitAndFlip();
+			soundController.PlaySound(SoundController.SoundsType.Mismatching, 0.5f);
 		}
 
 		private void ResetGame()
